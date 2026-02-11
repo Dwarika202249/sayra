@@ -13,6 +13,7 @@ from modules.watchers.eyes import start_presence_monitor
 from modules.automation.system_control import start_system_control
 from modules.automation.launcher import launcher
 from modules.automation.atmosphere import atmosphere
+from modules.tools.web_search import web_searcher
 
 # Load Constitution
 with open("config/settings.yaml", "r", encoding="utf-8") as f:
@@ -69,8 +70,34 @@ async def sayra_shell():
             app_name = processed_input.replace("open ", "").strip()
             await launcher.open_app(app_name)
             continue
+        
+        # --- WEB SEARCH COMMANDS ---
+        # Pattern: "search <query>" or "google <query>"
+        elif processed_input.startswith(("search ", "find ", "google ")):
+            # 1. Extract Query
+            query = processed_input.split(" ", 1)[1]
+            await mouth.speak(f"Searching web for {query}")
+            
+            # 2. Perform Search (Run in executor because DDG is sync)
+            search_result = await asyncio.get_event_loop().run_in_executor(None, web_searcher.search, query)
+            
+            if search_result:
+                print(f"\n{search_result}") # Raw data for you to see
+                
+                # 3. Feed to Brain for Natural Answer
+                # Hum Brain ko bolenge: "Ye data hai, ab user ke sawal ka jawab do"
+                context_prompt = f"Here is the latest data from the web:\n{search_result}\n\nUser Question: {query}\nTask: Answer the user based on this data in Hinglish. Be concise."
+                
+                response = await brain.generate_response(prompt=context_prompt, context="Web Search Mode")
+                await mouth.speak(response)
+                print(f"SAYRA: {response}")
+                
+            else:
+                await mouth.speak("Sorry Boss, I couldn't find anything relevant.")
+            
+            continue
 
-        # --- NEW: ATMOSPHERE COMMANDS ---
+        # --- ATMOSPHERE COMMANDS ---
         elif "rest mode" in processed_input:
             await atmosphere.activate_rest_mode()
             continue

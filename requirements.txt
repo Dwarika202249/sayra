@@ -34,4 +34,6 @@ pyopenssl                # For secure API communication
 
 screen_brightness_control  # For controlling screen brightness (Automation)
 
+ddgs       # For Web Search (The Antenna) 
+
 
