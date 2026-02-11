@@ -32,4 +32,6 @@ pywhatkit                # For Youtube automation / WhatsApp messaging
 flask                    # For web requests (APIs)
 pyopenssl                # For secure API communication
 
+screen_brightness_control  # For controlling screen brightness (Automation)
+
 

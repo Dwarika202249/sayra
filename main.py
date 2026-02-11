@@ -11,6 +11,8 @@ from modules.hear.ear import ear
 from modules.watchers.feeder import start_feeder
 from modules.watchers.eyes import start_presence_monitor
 from modules.automation.system_control import start_system_control
+from modules.automation.launcher import launcher
+from modules.automation.atmosphere import atmosphere
 
 # Load Constitution
 with open("config/settings.yaml", "r", encoding="utf-8") as f:
@@ -60,6 +62,30 @@ async def sayra_shell():
 
         elif "sentry mode off" in processed_input or "disable security" in processed_input: 
             await bus.emit("DISABLE_SENTRY")
+            continue
+        
+        # Pattern: "open <app_name>"
+        elif processed_input.startswith("open "):
+            app_name = processed_input.replace("open ", "").strip()
+            await launcher.open_app(app_name)
+            continue
+
+        # --- NEW: ATMOSPHERE COMMANDS ---
+        elif "rest mode" in processed_input:
+            await atmosphere.activate_rest_mode()
+            continue
+            
+        elif "work mode" in processed_input or "focus mode" in processed_input:
+            await atmosphere.activate_work_mode()
+            continue
+        
+        elif "set brightness to" in processed_input:
+            try:
+                # Extract number from input
+                level = int(''.join(filter(str.isdigit, processed_input)))
+                await atmosphere.set_brightness_level(level)
+            except ValueError:
+                await mouth.speak("Please provide a valid brightness level.")
             continue
             
         # Voice Command Trigger
