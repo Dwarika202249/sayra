@@ -9,6 +9,8 @@ from modules.watchers.circadian_fixer import start_circadian_fixer
 from modules.speak.mouth import mouth
 from modules.hear.ear import ear
 from modules.watchers.feeder import start_feeder
+from modules.watchers.eyes import start_presence_monitor
+from modules.automation.system_control import start_system_control
 
 # Load Constitution
 with open("config/settings.yaml", "r", encoding="utf-8") as f:
@@ -39,7 +41,6 @@ async def handle_shutdown(data):
 
 async def sayra_shell():
     """Interactive loop for Dwarika to talk to Sayra"""
-    await mouth.speak("Hello Boss, I am Sayra - version zero point one - online and ready to help.")
     print(f"\nSAYRA v0.1 Online | Mode: {config['identity']['mode']}")
     print("Type 'exit' to shutdown or just talk to me.")
     
@@ -69,11 +70,16 @@ async def sayra_shell():
             response = await brain.generate_response(processed_input)
             await mouth.speak(response)
             print(f"SAYRA: {response}")
+            
+async def handle_user_returned(message):
+    """Jab Boss wapas aayein"""
+    await mouth.speak(message)
 
 async def main():
     # 1. Subscribe to Core Events
     bus.subscribe("VISION_BREAK", handle_vision_break)
     bus.subscribe("SYSTEM_ALERT", handle_system_alert)
+    bus.subscribe("USER_RETURNED", handle_user_returned)
     bus.subscribe("SYSTEM_SHUTDOWN", handle_shutdown)
     
     # 2. Start Background Watchers (Retina Guard, etc.)
@@ -84,6 +90,8 @@ async def main():
     tasks = [
         asyncio.create_task(start_retina_guard(vision_interval)),
         asyncio.create_task(start_circadian_fixer()),
+        asyncio.create_task(start_presence_monitor()),
+        asyncio.create_task(start_system_control()),
         asyncio.create_task(start_feeder()),
         asyncio.create_task(sayra_shell())
     ]
