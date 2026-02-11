@@ -2,22 +2,36 @@ import asyncio
 import ctypes
 import pyautogui
 from core.event_bus import bus
+from modules.speak.mouth import mouth
 
 class SystemControl:
     def __init__(self):
         self.lock_task = None  # To keep track of the countdown
+        # Default OFF rakhenge taaki aap jab kaam kar rahe ho to pareshani na ho
+        self.security_mode = False
 
     async def start(self):
         print("[SAYRA]: System Automation Active (Lock/Wake Ready)")
         # Subscribe to events
         bus.subscribe("USER_AWAY", self.handle_away)
         bus.subscribe("USER_RETURNED", self.handle_returned)
+        # NEW Subscriptions for Mode Switching
+        bus.subscribe("ENABLE_SENTRY", self.activate_sentry)
+        bus.subscribe("DISABLE_SENTRY", self.deactivate_sentry)
         
-        # Keep the module alive
-        while True:
-            await asyncio.sleep(3600)
+    async def activate_sentry(self, data):
+        self.security_mode = True
+        await mouth.speak("Sentry Mode Activated. Auto-lock enabled.")
+
+    async def deactivate_sentry(self, data):
+        self.security_mode = False
+        await mouth.speak("Sentry Mode Deactivated. Standing by.")
 
     async def handle_away(self, data):
+        # SABSE BADA CHANGE: Check status first
+        if not self.security_mode:
+            return  # Agar mode off hai, to kuch mat karo.
+        
         """Starts a countdown to lock the screen"""
         # Agar pehle se koi countdown chal raha hai to cancel karo (safety)
         if self.lock_task:
@@ -36,7 +50,7 @@ class SystemControl:
             # print("[SAYRA]: Lock cancelled. Welcome back.")
 
         # 2. Wake up screen
-        # Hum 'shift' key press karenge jo harmless hai par screen jaga degi
+        # Hum 'space' key press karenge
         pyautogui.press('space')  # Spacebar press to wake up
 
     async def execute_lock_sequence(self):

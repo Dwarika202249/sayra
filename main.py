@@ -52,6 +52,15 @@ async def sayra_shell():
         if processed_input in ['exit', 'quit', 'bye']:
             await bus.emit("SYSTEM_SHUTDOWN")
             break
+        
+         # Command parsing mein add karenge:
+        elif "sentry mode on" in processed_input or "enable security" in processed_input:
+            await bus.emit("ENABLE_SENTRY")
+            continue
+
+        elif "sentry mode off" in processed_input or "disable security" in processed_input: 
+            await bus.emit("DISABLE_SENTRY")
+            continue
             
         # Voice Command Trigger
         elif processed_input == 'listen':
@@ -61,6 +70,7 @@ async def sayra_shell():
             if voice_text:
                 print(f"You said: {voice_text}")
                 processed_input = voice_text # Voice text ko process karo
+
             else:
                 print("Sayra: Couldn't hear you clearly.")
                 continue # Loop wapas start
