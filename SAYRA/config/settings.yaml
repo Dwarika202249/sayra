@@ -1,0 +1,80 @@
+# ==========================================
+# SAYRA CORE CONFIGURATION (MARK 1)
+# ==========================================
+
+identity:
+  boss_name: "Dwarika"
+  role: "The Creator"
+  vision_power: -4.5
+  mode: "strict"
+
+system:
+  device: "Acer_Aspire_Lite"
+  low_resource_mode: true
+  kill_switch_enabled: true
+  privacy_level: "maximum"
+
+# ------------------------------------------
+# BRAIN (Hybrid Intelligence)
+# ------------------------------------------
+brain:
+  primary: "ollama"
+  failover: "groq"
+  
+  ollama:
+    model: "qwen3:0.6b"
+    base_url: "http://localhost:11434"
+    keep_alive: "5m"
+
+  groq:
+    model: "llama-3.3-70b-versatile"
+    temperature: 0.7
+
+  memory:
+    path: "./memory/chroma_db"
+    collection: "sayra_autobiography"
+
+# ------------------------------------------
+# HEARING & SPEECH
+# ------------------------------------------
+hearing:
+  engine: "faster-whisper"
+  model_size: "tiny"
+  compute_type: "int8"
+  wake_word: "Sayra"
+
+speech:
+  engine: "edge-tts"
+  voice: "hi-IN-SwaraNeural"
+  rate: "+25%"
+  volume: "+10%"
+
+# ------------------------------------------
+# PROTOCOLS (Behavioral Regulation)
+# ------------------------------------------
+protocols:
+  retina_guard:
+    enabled: true
+    interval_minutes: 20
+    break_seconds: 20
+    message: "Boss, look away. Focus on something 20 feet away."
+
+  circadian_fixer:
+    bedtime: "23:00"
+    shutdown_warning: "22:45"
+    forced_lock: true 
+
+  feeder_protocol:
+    reminders: ["09:00", "14:00", "18:00", "21:00"]
+    water_interval: 60
+
+  deep_focus:
+    blocked_apps: ["Steam.exe", "Discord.exe"]
+    blocked_sites: ["youtube.com", "instagram.com", "hotstar.com"]
+    allowed_apps: ["vscodium", "vscode", "terminal", "browser"]
+
+  job_hunter:
+    target_roles: ["React Developer", "Node.js Developer", "MERN Stack"]
+    min_lpa: 12
+    max_lpa: 18
+    locations: ["Gurgaon", "Noida", "Remote"]

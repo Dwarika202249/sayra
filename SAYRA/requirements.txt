@@ -1,0 +1,44 @@
+# --- Core System ---
+pyYAML                  # For parsing config.yaml
+python-dotenv           # For managing API keys securely
+requests                # For web requests (Job Hunter/APIs)
+psutil                  # For monitoring system health (CPU/RAM) & App Killer
+
+# --- Brain (Intelligence) ---
+ollama                  # Local Brain (Qwen 3) interface
+groq                    # Cloud Brain failover (Llama 3)
+chromadb                # Long-term memory (Vector DB)
+
+# --- Hearing (Voice Input) ---
+SpeechRecognition       # For capturing and recognizing speech
+faster-whisper          # Optimized Speech-to-Text (Runs smooth on i3)
+pyaudio                 # Microphone input stream
+numpy                   # Math operations for audio data
+
+# --- Speech (Voice Output) ---
+edge-tts                # High-quality Neural Voice (Azure Wrapper)
+pygame                  # To play the generated MP3 audio without lag
+
+# --- Vision (Eyes) ---
+opencv-python-headless  # Lightweight CV for webcam/presence
+pillow                  # Image processing for analysis
+
+# --- Automation (Hands) ---
+pyautogui               # Mouse & Keyboard control
+beautifulsoup4          # Web Scraping (Job Hunter)
+pywhatkit                # For Youtube automation / WhatsApp messaging
+
+# --- Internet & APIs ---
+flask                    # For web requests (APIs)
+pyopenssl                # For secure API communication
+
+screen_brightness_control  # For controlling screen brightness (Automation)
+
+ddgs       # For Web Search (The Antenna) 
+
+# --- Server & Networking ---
+python-socketio         # Async WebSocket Server
+aiohttp                 # Async Web Server Engine
+aiohttp_cors            # Cross-Origin support for React
+
+

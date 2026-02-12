@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  background-color: transparent; /* Important for Electron transparency */
+  font-family: 'Inter', sans-serif;
+  overflow: hidden; /* No scrollbars */
+  color: white;
+}
+
+/* Glassmorphism Utility */
+.glass-panel {
+  background: rgba(10, 14, 26, 0.7);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 217, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
