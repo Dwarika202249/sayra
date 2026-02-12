@@ -41,6 +41,11 @@ async def handle_shutdown(data):
     await mouth.speak("Shutting down systems. Goodbye Boss.")
     # Trigger the event to stop the main loop
     shutdown_event.set()
+    
+async def handle_user_returned(message):
+    """Jab Boss wapas aayein"""
+    # await mouth.speak(message)
+    print(f"\n[SAYRA - WELCOME]: {message}")
 
 async def sayra_shell():
     """Interactive loop for Dwarika to talk to Sayra"""
@@ -48,6 +53,7 @@ async def sayra_shell():
     print("Type 'exit' to shutdown or just talk to me.")
     
     while True:
+        # print("\nBoss: ", end="", flush=True)
         user_input = await asyncio.get_event_loop().run_in_executor(None, input, "Boss: ")
         
         processed_input = user_input.lower().strip()
@@ -90,7 +96,6 @@ async def sayra_shell():
                 
                 response = await brain.generate_response(prompt=context_prompt, context="Web Search Mode")
                 await mouth.speak(response)
-                print(f"SAYRA: {response}")
                 
             else:
                 await mouth.speak("Sorry Boss, I couldn't find anything relevant.")
@@ -132,11 +137,9 @@ async def sayra_shell():
         if processed_input:
             response = await brain.generate_response(processed_input)
             await mouth.speak(response)
-            print(f"SAYRA: {response}")
+            # print(f"SAYRA: {response}")
             
-async def handle_user_returned(message):
-    """Jab Boss wapas aayein"""
-    await mouth.speak(message)
+
 
 async def main():
     # 1. Subscribe to Core Events

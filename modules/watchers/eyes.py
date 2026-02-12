@@ -39,7 +39,7 @@ class SayraEyes:
             return len(faces) > 0
 
         except Exception as e:
-            print(f"[Eyes Error]: {e}")
+            # print(f"[Eyes Error]: {e}")
             return False
 
 class PresenceMonitor:
@@ -58,13 +58,13 @@ class PresenceMonitor:
                 # User wapas aaya
                 self.is_present = True
                 await bus.emit("USER_RETURNED", "Welcome back, Boss.")
-                print("[SAYRA]: User Detected.")
+                # print("[SAYRA]: User Detected.")
                 
             elif not currently_present and self.is_present:
                 # User chala gaya
                 self.is_present = False
                 await bus.emit("USER_AWAY", None)
-                print("[SAYRA]: User Away.")
+                # print("[SAYRA]: User Away.")
             
             # Har 5 second mein check karo (Low CPU usage)
             await asyncio.sleep(5)
