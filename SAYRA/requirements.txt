@@ -43,4 +43,6 @@ aiohttp_cors            # Cross-Origin support for React
 
 pvporcupine            # For wake word detection (Presence Monitor)
 
+chromadb                # Vector Database for Long Term Memory
+
 
