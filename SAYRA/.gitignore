@@ -5,3 +5,5 @@ build/
 __pycache__/
 venv
 *.pyc
+memory_db/
+resources/
