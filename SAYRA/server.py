@@ -21,6 +21,9 @@ from modules.hear.wake_word import wake_listener
 from modules.automation.launcher import launcher
 from modules.automation.atmosphere import atmosphere
 from modules.tools.web_search import web_searcher
+from modules.brain.router import router
+from modules.automation.actions import action_engine
+from modules.brain.reflex import reflex
 
 # Load Config
 with open("config/settings.yaml", "r", encoding="utf-8") as f:
@@ -35,57 +38,94 @@ brain = SayraBrain()
 shutdown_event = asyncio.Event()
 
 # --- HELPER: COMMAND PROCESSOR ---
-async def process_command_logic(raw_text):
-    text = raw_text.lower().strip()
+# async def process_command_logic(raw_text):
+#     text = raw_text.lower().strip()
     
-    # 1. Shutdown Logic
-    if text in ['exit', 'quit', 'bye', 'shutdown']:
+#     # 1. Shutdown Logic
+#     if text in ['exit', 'quit', 'bye', 'shutdown']:
+#         await bus.emit("SYSTEM_SHUTDOWN")
+#         return
+
+#     # 2. Sentry Mode
+#     elif "sentry mode on" in text:
+#         await bus.emit("ENABLE_SENTRY")
+#         await emit_to_ui('bot_message', "Sentry Mode Activated.")
+
+#     elif "sentry mode off" in text:
+#         await bus.emit("DISABLE_SENTRY")
+#         await emit_to_ui('bot_message', "Sentry Mode Deactivated.")
+
+#     # 3. App Launcher
+#     elif text.startswith("open "):
+#         app_name = text.replace("open ", "").strip()
+#         await launcher.open_app(app_name)
+#         await emit_to_ui('bot_message', f"Opening {app_name}...")
+
+#     # 4. Web Search
+#     elif text.startswith(("search ", "find ", "google ")):
+#         query = text.split(" ", 1)[1]
+#         await mouth.speak(f"Searching web for {query}")
+#         await emit_to_ui('bot_message', f"Searching: {query}...")
+        
+#         search_result = await asyncio.get_event_loop().run_in_executor(None, web_searcher.search, query)
+        
+#         if search_result:
+#             context_prompt = f"Data from web:\n{search_result}\n\nUser Question: {query}\nTask: Answer concisely in Hinglish."
+#             response = await brain.generate_response(prompt=context_prompt, context="Web Search Mode")
+#             await emit_to_ui('bot_message', response)
+#             await mouth.speak(response)
+#         else:
+#             msg = "Sorry Boss, nothing found."
+#             await emit_to_ui('bot_message', msg)
+#             await mouth.speak(msg)
+
+#     # 5. Atmosphere
+#     elif "rest mode" in text:
+#         await atmosphere.activate_rest_mode()
+#         await emit_to_ui('bot_message', "Rest Mode Activated 🌙")
+#     elif "work mode" in text:
+#         await atmosphere.activate_work_mode()
+#         await emit_to_ui('bot_message', "Work Mode Activated 🚀")
+    
+#     # 6. Brain (Default)
+#     else:
+#         response = await brain.generate_response(text)
+#         await emit_to_ui('bot_message', response)
+#         await mouth.speak(response)
+
+async def process_command_logic(raw_text):
+    text = raw_text.strip()
+    if not text: return
+
+    # 1. Shutdown Override (Always keep this hardcoded for safety)
+    if text.lower() in ['exit', 'quit', 'bye', 'shutdown']:
         await bus.emit("SYSTEM_SHUTDOWN")
         return
 
-    # 2. Sentry Mode
-    elif "sentry mode on" in text:
-        await bus.emit("ENABLE_SENTRY")
-        await emit_to_ui('bot_message', "Sentry Mode Activated.")
+    # 2. ROUTING (Dimaag lagao)
+    route = await router.determine_intent(text)
+    print(f"[Router]: Route Selected -> {route['type']}")
 
-    elif "sentry mode off" in text:
-        await bus.emit("DISABLE_SENTRY")
-        await emit_to_ui('bot_message', "Sentry Mode Deactivated.")
-
-    # 3. App Launcher
-    elif text.startswith("open "):
-        app_name = text.replace("open ", "").strip()
-        await launcher.open_app(app_name)
-        await emit_to_ui('bot_message', f"Opening {app_name}...")
-
-    # 4. Web Search
-    elif text.startswith(("search ", "find ", "google ")):
-        query = text.split(" ", 1)[1]
-        await mouth.speak(f"Searching web for {query}")
-        await emit_to_ui('bot_message', f"Searching: {query}...")
-        
-        search_result = await asyncio.get_event_loop().run_in_executor(None, web_searcher.search, query)
-        
-        if search_result:
-            context_prompt = f"Data from web:\n{search_result}\n\nUser Question: {query}\nTask: Answer concisely in Hinglish."
-            response = await brain.generate_response(prompt=context_prompt, context="Web Search Mode")
-            await emit_to_ui('bot_message', response)
-            await mouth.speak(response)
-        else:
-            msg = "Sorry Boss, nothing found."
-            await emit_to_ui('bot_message', msg)
-            await mouth.speak(msg)
-
-    # 5. Atmosphere
-    elif "rest mode" in text:
-        await atmosphere.activate_rest_mode()
-        await emit_to_ui('bot_message', "Rest Mode Activated 🌙")
-    elif "work mode" in text:
-        await atmosphere.activate_work_mode()
-        await emit_to_ui('bot_message', "Work Mode Activated 🚀")
+    # 3. EXECUTION BRANCHES
     
-    # 6. Brain (Default)
-    else:
+    if route['type'] == 'REFLEX':
+        # Identity Questions (Direct Answer)
+        # Brain style karega is fact ko
+        response = await brain.style_fact(route['response']['fact'])
+        await emit_to_ui('bot_message', response)
+        await mouth.speak(response)
+
+    elif route['type'] == 'COMMAND':
+        # Actions (Hands)
+        await emit_to_ui('bot_message', f"Executing: {route['intent']}...")
+        result_msg = await action_engine.execute(route['intent'], route['entities'])
+        
+        # Result batao
+        await emit_to_ui('bot_message', result_msg)
+        await mouth.speak(result_msg)
+
+    else: # type == 'CHAT'
+        # Pure Conversation (Brain)
         response = await brain.generate_response(text)
         await emit_to_ui('bot_message', response)
         await mouth.speak(response)
