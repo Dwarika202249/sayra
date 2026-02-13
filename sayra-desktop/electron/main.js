@@ -7,14 +7,14 @@ function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   mainWindow = new BrowserWindow({
-    width: 120,          // Small Orb size
-    height: 120,
-    x: width - 150,      // Bottom-Right corner
-    y: height - 150,
+    width: width,          // full width
+    height: height,        // full height
+    x: 0,
+    y: 0,
     frame: false,        // No title bar
     transparent: true,   // Transparent background
     alwaysOnTop: true,   // Always visible
-    resizable: false,    // Fixed size initially
+    hasShadow: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false, // For simple proto, security can be tightened later

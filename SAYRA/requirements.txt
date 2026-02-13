@@ -41,4 +41,6 @@ python-socketio         # Async WebSocket Server
 aiohttp                 # Async Web Server Engine
 aiohttp_cors            # Cross-Origin support for React
 
+pvporcupine            # For wake word detection (Presence Monitor)
+
 

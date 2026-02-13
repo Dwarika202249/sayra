@@ -41,7 +41,10 @@ hearing:
   engine: "faster-whisper"
   model_size: "tiny"
   compute_type: "int8"
-  wake_word: "Sayra"
+  # NEW: Custom Wake Word Path
+  # Agar file nahi mili to code automatic 'jarvis' par fallback karega
+  wake_word_file: "resources/hey_sayra.ppn" 
+  sensitivity: 0.7  # 0.5 is default, 0.7 is more sensitive (sunne me tez)
 
 speech:
   engine: "edge-tts"
