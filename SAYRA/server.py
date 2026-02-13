@@ -2,7 +2,6 @@ import socketio
 from aiohttp import web
 import asyncio
 import yaml
-import json
 import psutil
 import time
 import winsound # For Beep Sound
@@ -115,14 +114,34 @@ async def process_command_logic(raw_text):
         await emit_to_ui('bot_message', response)
         await mouth.speak(response)
 
-    elif route['type'] == 'COMMAND':
-        # Actions (Hands)
-        await emit_to_ui('bot_message', f"Executing: {route['intent']}...")
-        result_msg = await action_engine.execute(route['intent'], route['entities'])
+    elif route['type'] == 'BATCH':
+        # --- NEW: MULTI-TASK HANDLING ---
+        tasks = route['tasks']
         
-        # Result batao
-        await emit_to_ui('bot_message', result_msg)
-        await mouth.speak(result_msg)
+        # User ko batao ki plan kya hai
+        if len(tasks) > 1:
+            await emit_to_ui('bot_message', f"Executing {len(tasks)} commands...")
+        
+        for task in tasks:
+            intent = task['intent']
+            entities = task.get('entities', {})
+            
+            # UI Feedback per task
+            # await emit_to_ui('bot_message', f"👉 {intent}...") 
+            
+            # Execute Action
+            result_msg = await action_engine.execute(intent, entities)
+            
+            # Result Output
+            await emit_to_ui('bot_message', result_msg)
+            
+            # Optional: Speak only significant results or generic "Done"
+            # await mouth.speak(result_msg) 
+            
+            # Thoda delay taaki system hang na ho
+            await asyncio.sleep(1)
+            
+        await mouth.speak(f"All {len(tasks)} tasks completed Boss.")
 
     else: # type == 'CHAT'
         # Pure Conversation (Brain)

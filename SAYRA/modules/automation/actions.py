@@ -1,15 +1,32 @@
 import pywhatkit
 import pyautogui
 import os
-import subprocess
+import shutil
+import glob
 import time
 import asyncio
-from core.event_bus import bus
+from pathlib import Path
 
 class ActionEngine:
     def __init__(self):
         # Safety Fail-safe: Mouse ko corner me le jaoge to script ruk jayegi
         pyautogui.FAILSAFE = True
+        
+    # User Paths Setup (Windows)
+        self.user_home = os.path.expanduser('~')
+        self.folders = {
+            "downloads": os.path.join(self.user_home, "Downloads"),
+            "documents": os.path.join(self.user_home, "Documents"),
+            "desktop": os.path.join(self.user_home, "Desktop"),
+            "pictures": os.path.join(self.user_home, "Pictures"),
+            "music": os.path.join(self.user_home, "Music"),
+            "videos": os.path.join(self.user_home, "Videos"),
+            "protected": os.path.join(os.getcwd(), "protected") # Project specific folder
+        }
+        
+    def _resolve_path(self, folder_name):
+        """Map generic names like 'downloads' to real paths"""
+        return self.folders.get(folder_name.lower(), self.folders["documents"])
 
     async def execute(self, intent, entities):
         """
@@ -55,10 +72,48 @@ class ActionEngine:
                     pyautogui.press('volumemute')
                     return "System muted."
                 elif action == 'screenshot':
-                    img_path = os.path.join("protected", f"screenshot_{int(time.time())}.png")
-                    os.makedirs("protected", exist_ok=True)
+                    timestamp = time.strftime("%Y%m%d-%H%M%S")
+                    img_path = os.path.join(self.folders["pictures"], f"screenshot_{timestamp}.png")
                     pyautogui.screenshot(img_path)
-                    return f"Screenshot saved to {img_path}"
+                    return f"Screenshot saved to Pictures folder."
+                
+                # --- FILE OPERATIONS ---
+            elif intent == 'FILE_OPERATION':
+                action = entities.get('action') # move, delete, copy
+                target = entities.get('target') # *.pdf, filename.txt
+                source = entities.get('source', 'downloads') # default to downloads
+                dest = entities.get('destination', 'documents')
+
+                src_path = self._resolve_path(source)
+                dst_path = self._resolve_path(dest)
+                
+                # Pattern Matching (e.g., "*.pdf" or "report.docx")
+                # Agar user bole "all pdfs", to hum "*.pdf" bana denge logic se
+                if "all" in target and "pdf" in target: search_pattern = "*.pdf"
+                elif "all" in target and "image" in target: search_pattern = "*.jpg" # Simple assumption
+                elif "all" in target and "text" in target: search_pattern = "*.txt"
+                else: search_pattern = target
+
+                files_found = glob.glob(os.path.join(src_path, search_pattern))
+                
+                if not files_found:
+                    return f"No files matching '{target}' found in {source}."
+
+                count = 0
+                for file in files_found:
+                    try:
+                        file_name = os.path.basename(file)
+                        if action == 'move':
+                            shutil.move(file, os.path.join(dst_path, file_name))
+                        elif action == 'copy':
+                            shutil.copy(file, os.path.join(dst_path, file_name))
+                        elif action == 'delete':
+                            os.remove(file)
+                        count += 1
+                    except Exception as e:
+                        print(f"File Error: {e}")
+
+                return f"Successfully {action}d {count} files from {source} to {dest}."
 
             return "Action executed successfully."
 
