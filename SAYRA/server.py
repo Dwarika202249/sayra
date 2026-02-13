@@ -4,8 +4,8 @@ import asyncio
 import yaml
 import json
 import psutil
-import winsound
 import time
+import winsound # For Beep Sound
 from core.event_bus import bus
 
 # Import Modules
@@ -17,7 +17,7 @@ from modules.watchers.eyes import start_presence_monitor
 from modules.automation.system_control import start_system_control
 from modules.speak.mouth import mouth
 from modules.hear.ear import ear
-from modules.hear.wake_word import wake_listener  # NEW IMPORT
+from modules.hear.wake_word import wake_listener 
 from modules.automation.launcher import launcher
 from modules.automation.atmosphere import atmosphere
 from modules.tools.web_search import web_searcher
@@ -36,13 +36,10 @@ shutdown_event = asyncio.Event()
 
 # --- HELPER: COMMAND PROCESSOR ---
 async def process_command_logic(raw_text):
-    """
-    Central logic to process any text command (from typing or voice).
-    """
     text = raw_text.lower().strip()
     
-    # 1. Shutdown
-    if text in ['exit', 'quit', 'bye']:
+    # 1. Shutdown Logic
+    if text in ['exit', 'quit', 'bye', 'shutdown']:
         await bus.emit("SYSTEM_SHUTDOWN")
         return
 
@@ -62,7 +59,7 @@ async def process_command_logic(raw_text):
         await emit_to_ui('bot_message', f"Opening {app_name}...")
 
     # 4. Web Search
-    elif text.startswith(("search ", "find ", "google ", "pata karo")):
+    elif text.startswith(("search ", "find ", "google ")):
         query = text.split(" ", 1)[1]
         await mouth.speak(f"Searching web for {query}")
         await emit_to_ui('bot_message', f"Searching: {query}...")
@@ -93,11 +90,11 @@ async def process_command_logic(raw_text):
         await emit_to_ui('bot_message', response)
         await mouth.speak(response)
 
-# --- THE BRIDGE (Core -> UI) ---
+# --- BRIDGE ---
 async def emit_to_ui(event_name, data):
-    await sio.emit(event_name, data) # Removed {'data': data} wrapper for cleaner frontend handling
+    await sio.emit(event_name, data)
 
-# --- EVENT HANDLERS (System) ---
+# --- HANDLERS ---
 async def handle_vision_break(message):
     await emit_to_ui('show_alert', {'type': 'warning', 'message': message})
     await mouth.speak(message)
@@ -106,9 +103,9 @@ async def handle_system_alert(message):
     await emit_to_ui('show_alert', {'type': 'info', 'message': message})
     await mouth.speak(message)
 
-# Global tracker for greeting
+# Greeting Logic with Cooldown
 last_greet_time = 0
-GREET_COOLDOWN = 600 # 10 Minutes
+GREET_COOLDOWN = 600 
 
 async def handle_user_returned(message):
     global last_greet_time
@@ -119,8 +116,6 @@ async def handle_user_returned(message):
         await emit_to_ui('bot_message', message)
         await mouth.speak(message)
         last_greet_time = current_time
-    else:
-        print("[SAYRA]: User returned (Silent Mode).")
 
 async def handle_user_away(data):
     await emit_to_ui('user_status', 'away')
@@ -129,6 +124,10 @@ async def handle_shutdown(data):
     await emit_to_ui('system_status', 'shutting_down')
     await mouth.speak("Shutting down systems.")
     shutdown_event.set()
+    # Force kill server after 2 seconds
+    await asyncio.sleep(2)
+    import os, signal
+    os.kill(os.getpid(), signal.SIGTERM)
 
 bus.subscribe("VISION_BREAK", handle_vision_break)
 bus.subscribe("SYSTEM_ALERT", handle_system_alert)
@@ -137,34 +136,32 @@ bus.subscribe("USER_AWAY", handle_user_away)
 bus.subscribe("SYSTEM_SHUTDOWN", handle_shutdown)
 
 
-# --- SOCKET.IO HANDLERS ---
+# --- SOCKET IO EVENTS ---
 @sio.event
 async def connect(sid, environ):
     print(f"[Client Connected] SID: {sid}")
-    # 1. Status Online set karo (Orb Blue ho jayega)
     await sio.emit('system_status', 'online', room=sid)
-    
-    # 2. YE MISSING LINE ADD KARO (Taaki 'Initializing' hat jaye)
-    await sio.emit('bot_message', "Sayra Online.")
+    # FIX: Initial message sent on connection
+    await sio.emit('bot_message', "Sayra Online. Listening for 'Hey Sayra'...")
 
 @sio.event
 async def user_command(sid, data):
     raw_text = data.get('text', '')
     print(f"[Command Received]: {raw_text}")
     await sio.emit('sayra_state', 'processing')
-    
     try:
         await process_command_logic(raw_text)
     except Exception as e:
         print(f"[Error]: {e}")
-        await sio.emit('bot_message', f"Error: {str(e)}")
-    
     await sio.emit('sayra_state', 'idle')
 
 @sio.event
 async def voice_trigger(sid):
-    """Called when user clicks Mic button in UI"""
+    # Manual Click Trigger Logic
+    # Yahan bhi handshake use karenge to be safe
+    wake_listener.pause()
     await sio.emit('sayra_state', 'listening')
+    
     voice_text = await asyncio.get_event_loop().run_in_executor(None, ear.listen)
     
     if voice_text:
@@ -173,7 +170,7 @@ async def voice_trigger(sid):
         await process_command_logic(voice_text)
     
     await sio.emit('sayra_state', 'idle')
-
+    wake_listener.resume()
 
 # --- BACKGROUND TASKS ---
 async def monitor_vitals():
@@ -181,54 +178,55 @@ async def monitor_vitals():
     while True:
         try:
             battery = psutil.sensors_battery()
-            plugged = battery.power_plugged if battery else False
             percent = battery.percent if battery else 100
-            
             vitals = {
                 'cpu': psutil.cpu_percent(interval=None),
                 'ram': psutil.virtual_memory().percent,
                 'battery': percent,
-                'power': 'Charging' if plugged else 'Discharging'
+                'power': 'Unknown'
             }
             await sio.emit('system_vitals', vitals)
-        except Exception as e:
-            pass
+        except: pass
         await asyncio.sleep(2)
 
 async def start_wake_word_detection():
-    """Background loop waiting for 'Jarvis/Computer'"""
     print("[SAYRA]: Wake Word Detection Started.")
-    # Allow other systems to boot 
     await asyncio.sleep(2)
     
     while True:
-        # Run blocking listen in executor
+        # Loop mic read
         triggered = await asyncio.get_event_loop().run_in_executor(None, wake_listener.listen)
         
         if triggered:
-            print("[WakeWord]: Triggered! Listening for command...")
+            print("[WakeWord]: Triggered! Handing over to Ear...")
             
-            # 1. Visual Feedback
+            # --- THE HANDSHAKE PROTOCOL ---
+            
+            # 1. Release Mic
+            wake_listener.pause()
+            
+            # 2. Feedback (Sound + Visual)
             await emit_to_ui('sayra_state', 'listening')
+            try:
+                winsound.Beep(1000, 200) # Ting Sound
+            except: pass
             
-            # 2. Audio Feedback (Optional Beep)
-            # await mouth.speak("Yes Boss?") 
-            # Frequency 1000Hz, Duration 200ms
-            winsound.Beep(1000, 200)
-            
-            # 3. Listen for actual command
+            # 3. Ear Listen (Ab Ear mic le sakta hai)
             voice_text = await asyncio.get_event_loop().run_in_executor(None, ear.listen)
             
+            # 4. Process
             if voice_text:
                 await emit_to_ui('user_transcription', voice_text)
                 await emit_to_ui('sayra_state', 'processing')
                 await process_command_logic(voice_text)
             
-            # 4. Reset
+            # 5. Reset UI
             await emit_to_ui('sayra_state', 'idle')
             
-        # Yield control to event loop
-        await asyncio.sleep(0.1)
+            # 6. Re-acquire Mic (Resume Wake Word)
+            wake_listener.resume()
+            
+        await asyncio.sleep(0.05) # Tiny sleep to prevent CPU burn
 
 async def start_background_tasks():
     vision_interval = config['protocols']['retina_guard']['interval_minutes']
@@ -239,8 +237,6 @@ async def start_background_tasks():
     asyncio.create_task(start_system_control())
     asyncio.create_task(start_feeder())
     asyncio.create_task(monitor_vitals())
-    
-    # NEW: Wake Word Task
     asyncio.create_task(start_wake_word_detection())
     
     print("[SAYRA]: All Background Protocols Started.")
@@ -250,4 +246,10 @@ if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.create_task(start_background_tasks())
-    web.run_app(app, port=8080, loop=loop)
+    
+    try:
+        web.run_app(app, port=8080, loop=loop)
+    except KeyboardInterrupt:
+        print("Stopping...")
+    finally:
+        wake_listener.cleanup()

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import { Mic, LayoutDashboard } from 'lucide-react';
 import Dashboard from './components/Dashboard';
+import Spotlight from './components/Spotlight';
 
 // Connect to Python Backend
 const socket = io('http://localhost:8080');
@@ -13,6 +14,7 @@ function App() {
   const [showHud, setShowHud] = useState(false);
   const [vitals, setVitals] = useState({ cpu: 0, ram: 0, battery: 0, power: '' });
   const [chatLogs, setChatLogs] = useState([]);
+  const [showSpotlight, setShowSpotlight] = useState(false);
 
   useEffect(() => {
     // Connection Handlers
@@ -50,8 +52,36 @@ function App() {
     socket.emit('voice_trigger');
   };
 
+  // --- Global Keyboard Shortcut (Ctrl + Space) ---
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Ctrl + Space to toggle Spotlight
+      if (e.ctrlKey && e.code === 'Space') {
+        setShowSpotlight(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  // Handle Command from Spotlight
+  const handleSpotlightCommand = (text) => {
+    setMode('processing');
+    addLog('user', text);
+    // Send text command to backend
+    socket.emit('user_command', { text: text });
+  };
+
   return (
     <div className="w-screen h-screen overflow-hidden">
+
+      {/* Spotlight Overlay */}
+      <Spotlight 
+        visible={showSpotlight} 
+        onClose={() => setShowSpotlight(false)}
+        onCommand={handleSpotlightCommand}
+      />
       
       {/* THE DASHBOARD OVERLAY */}
       {showHud && (
